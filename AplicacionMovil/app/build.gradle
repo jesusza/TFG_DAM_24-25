@@ -1,15 +1,15 @@
-plugins {
-    alias(libs.plugins.android.application)
-}
+// Archivo build.gradle (Module Level: app)
+apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services' // Aplica el plugin de Firebase
 
 android {
     namespace 'com.example.aplicaciongestionequipos'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.example.aplicaciongestionequipos"
         minSdk 24
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 
@@ -29,12 +29,15 @@ android {
 }
 
 dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.7.0') // Firebase BOM
+    implementation 'com.google.firebase:firebase-auth' // Firebase Auth
+    implementation 'com.google.firebase:firebase-firestore' // Firestore
 
-    implementation libs.appcompat
-    implementation libs.material
-    implementation libs.activity
-    implementation libs.constraintlayout
-    testImplementation libs.junit
-    androidTestImplementation libs.ext.junit
-    androidTestImplementation libs.espresso.core
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
