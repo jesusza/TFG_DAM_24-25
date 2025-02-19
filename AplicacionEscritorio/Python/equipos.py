@@ -1,5 +1,9 @@
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QLabel, QStackedWidget, QHBoxLayout, QInputDialog
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,
+    QMessageBox, QLabel, QStackedWidget, QHBoxLayout, QInputDialog,
+    QHeaderView
+)
 from PyQt5.QtCore import Qt
 from login import db  # Importamos db desde login.py
 
@@ -19,8 +23,33 @@ class EquiposWidget(QWidget):
 
         # Tabla para mostrar equipos
         self.table = QTableWidget()
-        self.table.setColumnCount(2)  # Ahora tiene dos columnas: Nombre del Equipo y Entrenador
+        self.table.setColumnCount(2)  # Dos columnas: Nombre del Equipo, Entrenador
         self.table.setHorizontalHeaderLabels(["Nombre del Equipo", "Entrenador"])
+
+        # ⚙ Ajustes de estilo en la tabla
+        self.table.setAlternatingRowColors(True)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #ccc;
+                font-size: 14px;
+            }
+            QHeaderView::section {
+                background-color: #0056b3;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                border: none;
+            }
+        """)
+        # Redimensionar columnas al contenido
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # Ajustar la última columna al espacio sobrante
+        self.table.horizontalHeader().setStretchLastSection(True)
+
+        # Alinear encabezados al centro
+        for col in range(self.table.columnCount()):
+            self.table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
+
         layout.addWidget(self.table)
 
         # Botones inferiores
@@ -58,17 +87,24 @@ class EquiposWidget(QWidget):
         for row_idx, equipo in enumerate(equipos_ref):
             equipo_data = equipo.to_dict()
             self.table.insertRow(row_idx)
+
+            # Nombre del documento: Nombre del equipo
             self.table.setItem(row_idx, 0, QTableWidgetItem(equipo.id))
-            self.table.setItem(row_idx, 1, QTableWidgetItem(equipo_data.get("entrenador", "Sin asignar")))
+            # Entrenador
+            entrenador = equipo_data.get("entrenador", "Sin asignar")
+            self.table.setItem(row_idx, 1, QTableWidgetItem(entrenador))
     
     def add_team(self):
         """Añade un nuevo equipo a Firestore."""
-        from PyQt5.QtWidgets import QInputDialog
         team_name, ok = QInputDialog.getText(self, "Nuevo Equipo", "Ingrese el nombre del equipo:")
         if ok and team_name.strip():
             entrenador, ok = QInputDialog.getText(self, "Entrenador", "Ingrese el nombre del entrenador:")
             if ok and entrenador.strip():
-                db.collection("Equipos").document(team_name).set({"nombre": team_name, "entrenador": entrenador, "jugadores": []})
+                db.collection("Equipos").document(team_name).set({
+                    "nombre": team_name,
+                    "entrenador": entrenador,
+                    "jugadores": []
+                })
                 self.load_teams()
                 QMessageBox.information(self, "Éxito", "Equipo añadido correctamente.")
             else:
@@ -83,14 +119,18 @@ class EquiposWidget(QWidget):
             QMessageBox.warning(self, "Error", "Seleccione un equipo para editar.")
             return
         team_name = self.table.item(selected_row, 0).text()
+
         new_name, ok = QInputDialog.getText(self, "Editar Equipo", "Nuevo nombre del equipo:")
         if ok and new_name.strip():
             new_coach, ok = QInputDialog.getText(self, "Editar Entrenador", "Nuevo nombre del entrenador:")
             if ok and new_coach.strip():
-                db.collection("Equipos").document(team_name).update({"nombre": new_name, "entrenador": new_coach})
+                db.collection("Equipos").document(team_name).update({
+                    "nombre": new_name,
+                    "entrenador": new_coach
+                })
                 self.load_teams()
                 QMessageBox.information(self, "Éxito", "Equipo actualizado correctamente.")
-    
+
     def delete_selected_team(self):
         """Elimina el equipo seleccionado."""
         selected_row = self.table.currentRow()
@@ -105,17 +145,26 @@ class EquiposWidget(QWidget):
             QMessageBox.information(self, "Eliminado", "Equipo eliminado correctamente.")
 
     def view_players(self):
-        """Muestra los jugadores del equipo seleccionado."""
+        """Muestra los jugadores del equipo seleccionado desde la colección 'Jugadores'."""
         selected_row = self.table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "Error", "Seleccione un equipo para ver sus jugadores.")
             return
+
         team_name = self.table.item(selected_row, 0).text()
-        equipo_doc = db.collection("Equipos").document(team_name).get()
-        
-        if equipo_doc.exists:
-            equipo_data = equipo_doc.to_dict()
-            jugadores = equipo_data.get("jugadores", [])
-            QMessageBox.information(self, "Jugadores", f"Jugadores de {team_name}:\n" + "\n".join(jugadores))
+
+        # Consultar la colección 'Jugadores' donde campo 'equipo' == team_name
+        jugadores_ref = db.collection("Jugadores").where("equipo", "==", team_name).stream()
+        nombres_jugadores = []
+        for doc in jugadores_ref:
+            data = doc.to_dict()
+            # Si los jugadores tienen campo "nombre", lo tomamos
+            nombre_jugador = data.get("nombre", doc.id)
+            nombres_jugadores.append(nombre_jugador)
+
+        if nombres_jugadores:
+            msg = f"Jugadores de {team_name}:\n" + "\n".join(nombres_jugadores)
         else:
-            QMessageBox.warning(self, "Error", "No se encontraron jugadores para este equipo.")
+            msg = f"El equipo {team_name} no tiene jugadores registrados."
+
+        QMessageBox.information(self, "Jugadores", msg)

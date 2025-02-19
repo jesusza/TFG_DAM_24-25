@@ -1,17 +1,12 @@
 import sys
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QLabel, QHBoxLayout
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QPushButton, QTableWidget, QTableWidgetItem,
+    QMessageBox, QLabel, QHBoxLayout, QHeaderView
+)
 from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QColor
-import firebase_admin
-from firebase_admin import credentials, firestore
+from login import db  # Importa db desde tu archivo login.py
 from formularioContratos import FormularioContrato
-
-# Conectar con Firebase
-if not firebase_admin._apps:
-    cred = credentials.Certificate("C:/Users/ZANCADA/Desktop/TFG/AplicacionEscritorio/Python/gestion-club-futbol-firebase-adminsdk-fbsvc-c4fe34cec8.json")
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 class ContratosWidget(QWidget):
     def __init__(self):
@@ -29,23 +24,55 @@ class ContratosWidget(QWidget):
 
         # Tabla para mostrar contratos
         self.table = QTableWidget()
-        self.table.setColumnCount(7)  # 7 columnas incluyendo estado
-        self.table.setHorizontalHeaderLabels(["Nombre", "Fecha Inicio", "Fecha Fin", "Rol", "Equipo", "Salario", "Estado"])
-        self.table.setStyleSheet("font-size: 14px;")
+        self.table.setColumnCount(7)  # 7 columnas: Nombre, Fecha Inicio, Fecha Fin, Rol, Equipo, Salario, Estado
+        self.table.setHorizontalHeaderLabels([
+            "Nombre", "Fecha Inicio", "Fecha Fin", "Rol",
+            "Equipo", "Salario", "Estado"
+        ])
+        # Ajustes de estilo en la tabla
+        self.table.setAlternatingRowColors(True)  # Filas alternadas
+        self.table.setStyleSheet("""
+            QTableWidget {
+                font-size: 14px;
+                gridline-color: #ccc;
+            }
+            QHeaderView::section {
+                background-color: #0056b3;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                border: none;
+            }
+        """)
+        # Redimensionar columnas según contenido
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # Ajustar la última columna al espacio sobrante
+        self.table.horizontalHeader().setStretchLastSection(True)
+
+        # Centrar texto de encabezados
+        for col in range(self.table.columnCount()):
+            self.table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
+
         layout.addWidget(self.table)
 
         # Botones inferiores
         buttons_layout = QHBoxLayout()
         self.add_contract_btn = QPushButton("Añadir Contrato")
-        self.add_contract_btn.setStyleSheet("background-color: #0074cc; color: white; padding: 10px; border-radius: 5px;")
+        self.add_contract_btn.setStyleSheet(
+            "background-color: #0074cc; color: white; padding: 10px; border-radius: 5px;"
+        )
         self.add_contract_btn.clicked.connect(self.add_contract)
 
         self.edit_contract_btn = QPushButton("Editar Contrato")
-        self.edit_contract_btn.setStyleSheet("background-color: #FFA500; color: white; padding: 10px; border-radius: 5px;")
+        self.edit_contract_btn.setStyleSheet(
+            "background-color: #FFA500; color: white; padding: 10px; border-radius: 5px;"
+        )
         self.edit_contract_btn.clicked.connect(self.edit_contract)
 
         self.delete_contract_btn = QPushButton("Eliminar Contrato")
-        self.delete_contract_btn.setStyleSheet("background-color: #D32F2F; color: white; padding: 10px; border-radius: 5px;")
+        self.delete_contract_btn.setStyleSheet(
+            "background-color: #D32F2F; color: white; padding: 10px; border-radius: 5px;"
+        )
         self.delete_contract_btn.clicked.connect(self.delete_selected_contract)
 
         buttons_layout.addWidget(self.add_contract_btn)
@@ -54,19 +81,25 @@ class ContratosWidget(QWidget):
 
         layout.addLayout(buttons_layout)
         self.setLayout(layout)
+
+        # Cargar datos iniciales
         self.load_contracts()
 
     def load_contracts(self):
-        """Carga los contratos desde Firebase y los muestra en la tabla."""
+        """Carga los contratos desde Firebase y los muestra en la tabla con columnas redimensionables y colores."""
         self.table.setRowCount(0)
         contratos_ref = db.collection("Contratos").stream()
 
         for row_idx, contrato in enumerate(contratos_ref):
             contrato_data = contrato.to_dict()
             self.table.insertRow(row_idx)
+
+            # Nombre
             self.table.setItem(row_idx, 0, QTableWidgetItem(contrato_data["nombre"]))
+            # Fechas
             self.table.setItem(row_idx, 1, QTableWidgetItem(contrato_data["fecha_inicio"]))
             self.table.setItem(row_idx, 2, QTableWidgetItem(contrato_data["fecha_vencimiento"]))
+            # Rol, Equipo, Salario
             self.table.setItem(row_idx, 3, QTableWidgetItem(contrato_data["rol"]))
             self.table.setItem(row_idx, 4, QTableWidgetItem(contrato_data["equipo"]))
             self.table.setItem(row_idx, 5, QTableWidgetItem(str(contrato_data["salario_anual"])))
@@ -74,11 +107,9 @@ class ContratosWidget(QWidget):
             # Calcular estado
             estado = self.calculate_status(contrato_data["fecha_vencimiento"])
             estado_item = QTableWidgetItem(estado)
-
-            # Asignar color de fondo al estado
+            # Asignar color de fondo
             estado_color = self.get_status_color(contrato_data["fecha_vencimiento"])
             estado_item.setBackground(estado_color)
-
             self.table.setItem(row_idx, 6, estado_item)
 
     def add_contract(self):
@@ -113,7 +144,7 @@ class ContratosWidget(QWidget):
             self.load_contracts()
             QMessageBox.information(self, "Éxito", "Contrato actualizado correctamente.")
 
-    def delete_selected_contract(self):
+    def delete_contract(self):
         """Elimina el contrato seleccionado."""
         selected_row = self.table.currentRow()
         if selected_row == -1:
@@ -127,6 +158,10 @@ class ContratosWidget(QWidget):
             db.collection("Contratos").document(nombre).delete()
             self.load_contracts()
             QMessageBox.information(self, "Eliminado", "Contrato eliminado correctamente.")
+
+    def delete_selected_contract(self):
+        """alias para delete_contract"""
+        self.delete_contract()
 
     def calculate_status(self, fecha_vencimiento):
         """Calcula el estado del contrato según la fecha de vencimiento."""
@@ -151,10 +186,10 @@ class ContratosWidget(QWidget):
         status = self.calculate_status(fecha_vencimiento)
         
         colores = {
-            "Vencido": QColor(255, 0, 0),  # Rojo
-            "Menos de 6 meses": QColor(255, 255, 0),  # Amarillo
-            "Menos de 2 años": QColor(255, 165, 0),  # Naranja
-            "Más de 2 años": QColor(0, 128, 0)  # Verde
+            "Vencido": QColor(255, 0, 0),        # Rojo
+            "Menos de 6 meses": QColor(255, 255, 0),   # Amarillo
+            "Menos de 2 años": QColor(255, 165, 0),    # Naranja
+            "Más de 2 años": QColor(0, 128, 0)         # Verde
         }
 
         return colores.get(status, QColor(255, 255, 255))  # Blanco por defecto

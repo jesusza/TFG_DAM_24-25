@@ -2,10 +2,11 @@ import sys
 import os
 import re
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
+from PyQt5.QtGui import QPixmap
 
 # Verificar si Firebase ya está inicializado antes de hacerlo
 if not firebase_admin._apps:
@@ -29,7 +30,6 @@ class LoginWindow(QWidget):
 
         # Logo
         self.logo = QLabel(self)
-        from PyQt5.QtGui import QPixmap
 
         image_path = os.path.abspath("images/zancadacrm.png")
         pixmap = QPixmap(image_path)
