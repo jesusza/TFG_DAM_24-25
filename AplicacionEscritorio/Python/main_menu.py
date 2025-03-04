@@ -10,7 +10,9 @@ from equipos import EquiposWidget
 from contratos import ContratosWidget
 from ingresos_entradas import IngresosWidget
 from jugadores_Widget import JugadoresWidget
-from calendario import CalendarWidget  
+from calendario import CalendarWidget
+from inventario_widget import InventarioWidget
+from entrenamientos_widget import EntrenamientosWidget  
 
 class MainMenu(QWidget):
     def __init__(self, team, name, role, email, logout_callback):
@@ -49,17 +51,16 @@ class MainMenu(QWidget):
             "Contratos": self.show_contratos,
             "Ingreso Entradas": self.show_ingresos_entradas,
             "Jugadores": self.show_jugadores,
-            "Productos": lambda: print("Productos"),
-            "Inventario": lambda: print("Inventario"),
-            "Calendario": self.show_calendar,  # Llama a show_calendar
+            "Inventario": self.show_inventario,
+            "Calendario": self.show_calendar,
             "Clasificación": lambda: print("Clasificación"),
-            "Entrenamientos": lambda: print("Entrenamientos"),
+            "Entrenamientos": self.show_entrenamientos,  # ← Llamará a self.show_entrenamientos
             "Gráficos Equipo": lambda: print("Gráficos Equipo"),
             "Resultados del Año": lambda: print("Resultados del Año"),
             "Contratos del Personal": lambda: print("Contratos del Personal")
         }
 
-        # Crear botones
+        # Crear botones en el menú lateral
         for item, callback in menu_items.items():
             btn = QPushButton(item)
             btn.setStyleSheet("background-color: #0074cc; color: white; padding: 10px; border-radius: 5px;")
@@ -83,7 +84,9 @@ class MainMenu(QWidget):
         self.contratos_widget = ContratosWidget()
         self.ingresos_widget = IngresosWidget()
         self.jugadores_widget = JugadoresWidget()
-        self.calendar_widget = CalendarWidget()  # <-- Calendario
+        self.calendar_widget = CalendarWidget()
+        self.inventario_widget = InventarioWidget()
+        self.entrenamientos_widget = EntrenamientosWidget()  # ← Añadimos EntrenamientosWidget
 
         # Agregar widgets al stack
         self.stack.addWidget(self.equipos_widget)
@@ -91,6 +94,8 @@ class MainMenu(QWidget):
         self.stack.addWidget(self.ingresos_widget)
         self.stack.addWidget(self.jugadores_widget)
         self.stack.addWidget(self.calendar_widget)
+        self.stack.addWidget(self.inventario_widget)
+        self.stack.addWidget(self.entrenamientos_widget)  # ← Lo agregamos al stack
 
         content_layout.addWidget(self.sidebar)
         content_layout.addWidget(self.stack, 1)
@@ -110,29 +115,33 @@ class MainMenu(QWidget):
         return highlight
 
     def show_equipos(self):
-        """Muestra EquiposWidget en el stack."""
         self.stack.setCurrentWidget(self.equipos_widget)
 
     def show_contratos(self):
-        """Muestra ContratosWidget."""
         self.stack.setCurrentWidget(self.contratos_widget)
 
     def show_ingresos_entradas(self):
-        """Muestra IngresosWidget."""
         self.stack.setCurrentWidget(self.ingresos_widget)
 
     def show_jugadores(self):
-        """Muestra JugadoresWidget."""
         self.stack.setCurrentWidget(self.jugadores_widget)
 
+    def show_inventario(self):
+        self.stack.setCurrentWidget(self.inventario_widget)
+
     def show_calendar(self):
-        """Muestra CalendarWidget."""
         self.stack.setCurrentWidget(self.calendar_widget)
+
+    def show_entrenamientos(self):
+        """Muestra EntrenamientosWidget."""
+        self.stack.setCurrentWidget(self.entrenamientos_widget)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    # Ejemplo de uso (sin login real):
-    window = MainMenu("Mi Equipo", "Pedro", "Admin", "pedro@email.com",
-                      lambda: print("Logout presionado"))
+    window = MainMenu(
+        "Mi Equipo", "Pedro", "Admin", "pedro@email.com",
+        lambda: print("Logout presionado")
+    )
     window.show()
     sys.exit(app.exec_())

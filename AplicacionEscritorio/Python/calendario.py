@@ -97,7 +97,6 @@ class CalendarWidget(QWidget):
         self.row_to_doc_id = {}
 
         layout = QVBoxLayout()
-
         self.title_label = QLabel("Gestión de Partidos")
         self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.setStyleSheet("font-size: 18px; font-weight: bold;")

@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QHeaderView
 )
 from PyQt5.QtCore import Qt
-from login import db  # Importamos db desde login.py
+from login import db 
 
 class EquiposWidget(QWidget):
     def __init__(self):

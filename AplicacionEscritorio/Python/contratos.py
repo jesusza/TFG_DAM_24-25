@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QColor
-from login import db  # Importa db desde tu archivo login.py
+from login import db 
 from formularioContratos import FormularioContrato
 
 class ContratosWidget(QWidget):
