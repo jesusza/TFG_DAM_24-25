@@ -144,8 +144,9 @@ class FormularioEntrenamiento(QDialog):
 # WIDGET PRINCIPAL: EntrenamientosWidget
 # =========================
 class EntrenamientosWidget(QWidget):
-    def __init__(self):
+    def __init__(self, read_only=False):
         super().__init__()
+        self.read_only = read_only
         self.setWindowTitle("Gestión de Entrenamientos (Colección 'Entrenamientos')")
         self.setGeometry(200, 200, 1100, 600)
 

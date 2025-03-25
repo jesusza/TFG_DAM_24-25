@@ -1,6 +1,5 @@
 import sys
 import os
-import re
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
@@ -31,11 +30,14 @@ class LoginWindow(QWidget):
         # Logo
         self.logo = QLabel(self)
 
-        image_path = os.path.abspath("images/zancadacrm.png")
+        image_path = r"C:\Users\ZANCADA\Desktop\TFG\AplicacionEscritorio\images\zancadas.png" 
         pixmap = QPixmap(image_path)
 
         if pixmap.isNull():
-            print(f"Error: No se pudo cargar la imagen en {image_path}")
+                print(f"Error: No se pudo cargar la imagen en {image_path}")
+        else:
+            self.logo.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
 
         self.logo.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         self.logo.setAlignment(Qt.AlignCenter)

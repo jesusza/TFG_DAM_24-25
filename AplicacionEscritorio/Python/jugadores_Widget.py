@@ -84,14 +84,16 @@ class FormularioJugador(QDialog):
 # WIDGET PRINCIPAL (JugadoresWidget)
 # ==========================================
 class JugadoresWidget(QWidget):
-    def __init__(self):
+    def __init__(self, read_only=False):
         super().__init__()
+        self.read_only = read_only
+        self.row_to_doc_id = {}  # Inicializar como un diccionario vacío
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Título y configuración básica
         self.setWindowTitle("Gestión de Jugadores (Colección 'Jugadores')")
         self.setGeometry(200, 200, 1000, 600)
-
-        # 1) Asegurarnos de definir row_to_doc_id
-        self.row_to_doc_id = {}
-
         layout = QVBoxLayout()
 
         # Título
@@ -113,7 +115,7 @@ class JugadoresWidget(QWidget):
 
         layout.addLayout(filter_layout)
 
-        # Tabla: DocID, Equipo, Nombre, Posición, Dorsal, Goles, Asist, Amar, Rojas
+        # Tabla: Mostrar información de jugadores
         self.table = QTableWidget()
         self.table.setColumnCount(9)
         self.table.setHorizontalHeaderLabels([
@@ -136,34 +138,40 @@ class JugadoresWidget(QWidget):
         """)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
-        for col in range(self.table.columnCount()):
-            self.table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
-
         layout.addWidget(self.table)
 
         # Botones
         buttons_layout = QHBoxLayout()
 
+        # Botón "Añadir Jugador"
         self.add_player_btn = QPushButton("Añadir Jugador")
         self.add_player_btn.setStyleSheet("background-color: #0074cc; color: white; padding: 10px; border-radius: 5px;")
         self.add_player_btn.clicked.connect(self.add_player)
+        self.add_player_btn.setEnabled(not self.read_only)  # Solo habilitado si no es modo lectura
 
+        # Botón "Editar Jugador"
         self.edit_player_btn = QPushButton("Editar Jugador")
         self.edit_player_btn.setStyleSheet("background-color: #FFA500; color: white; padding: 10px; border-radius: 5px;")
         self.edit_player_btn.clicked.connect(self.edit_player)
+        self.edit_player_btn.setEnabled(not self.read_only)  # Solo habilitado si no es modo lectura
 
+        # Botón "Eliminar Jugador"
         self.delete_player_btn = QPushButton("Eliminar Jugador")
         self.delete_player_btn.setStyleSheet("background-color: #D32F2F; color: white; padding: 10px; border-radius: 5px;")
         self.delete_player_btn.clicked.connect(self.delete_selected_player)
+        self.delete_player_btn.setEnabled(not self.read_only)  # Solo habilitado si no es modo lectura
 
+        # Botón "Gráfico Jugador"
         self.graph_player_btn = QPushButton("Gráfico Jugador")
         self.graph_player_btn.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px;")
         self.graph_player_btn.clicked.connect(self.show_graph_player)
 
+        # Botón "Gráfico Equipo"
         self.graph_team_btn = QPushButton("Gráfico Equipo")
         self.graph_team_btn.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px;")
         self.graph_team_btn.clicked.connect(self.show_graph_team)
 
+        # Añadir botones al layout
         buttons_layout.addWidget(self.add_player_btn)
         buttons_layout.addWidget(self.edit_player_btn)
         buttons_layout.addWidget(self.delete_player_btn)
@@ -173,8 +181,10 @@ class JugadoresWidget(QWidget):
 
         self.setLayout(layout)
 
+        # Cargar datos iniciales
         self.load_teams()
         self.load_players()
+
 
     # ========================
     # CARGAR EQUIPOS
