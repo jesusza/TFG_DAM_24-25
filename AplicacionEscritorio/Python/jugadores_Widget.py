@@ -275,7 +275,6 @@ class JugadoresWidget(QWidget):
             new_id = self.generate_jug_id()
 
             db.collection("Jugadores").document(new_id).set(new_data)
-            QMessageBox.information(self, "Éxito", f"Jugador '{new_data['nombre']}' añadido (doc {new_id}).")
             self.load_players()
 
     # ========================

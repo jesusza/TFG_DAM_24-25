@@ -42,7 +42,6 @@ class FormularioProducto(QDialog):
         self.categoria_input = QLineEdit(self.producto_data.get("categoria", ""))
         self.precio_input = QLineEdit(str(self.producto_data.get("precio", 0.0)))
         self.cantidad_input = QLineEdit(str(self.producto_data.get("cantidad", 0)))
-        # Opcional: 'unidades_vendidas'
         self.vendidas_input = QLineEdit(str(self.producto_data.get("unidades_vendidas", 0)))
 
         form_layout.addRow("Nombre:", self.nombre_input)
@@ -165,14 +164,6 @@ class InventarioWidget(QWidget):
         self.graph_sold_btn.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px;")
         self.graph_sold_btn.clicked.connect(self.show_graph_sold)
 
-        self.graph_entradas_btn = QPushButton("Gráfico Entradas")
-        self.graph_entradas_btn.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px;")
-        self.graph_entradas_btn.clicked.connect(self.show_graph_entradas)
-
-        self.graph_ingresos_btn = QPushButton("Gráfico Ingresos")
-        self.graph_ingresos_btn.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px;")
-        self.graph_ingresos_btn.clicked.connect(self.show_graph_ingresos)
-
         # Ordenar
         buttons_layout.addWidget(self.add_product_btn)
         buttons_layout.addWidget(self.edit_product_btn)
@@ -180,8 +171,6 @@ class InventarioWidget(QWidget):
         buttons_layout.addWidget(self.delete_product_btn)
         buttons_layout.addWidget(self.graph_stock_btn)
         buttons_layout.addWidget(self.graph_sold_btn)
-        buttons_layout.addWidget(self.graph_entradas_btn)
-        buttons_layout.addWidget(self.graph_ingresos_btn)
 
         layout.addLayout(buttons_layout)
         self.setLayout(layout)
@@ -444,88 +433,6 @@ class InventarioWidget(QWidget):
         plt.ylabel("Unidades Vendidas")
         plt.tight_layout()
         plt.show()
-
-    # ========================
-    # GRÁFICO DE INGRESOS POR ENTRADAS
-    # ========================
-    def show_graph_entradas(self):
-        """
-        Genera un gráfico de los ingresos por entradas (campo 'ingresos_entradas')
-        en la colección 'Ingresos'.
-        """
-        ingresos_ref = db.collection("Ingresos").stream()
-        fechas = []
-        entradas_vals = []
-
-        for doc in ingresos_ref:
-            data = doc.to_dict()
-            fecha = data.get("fecha", doc.id)
-            ing_entradas = int(data.get("ingresos_entradas", 0))
-            fechas.append(fecha)
-            entradas_vals.append(ing_entradas)
-
-        if not fechas:
-            QMessageBox.warning(self, "Sin Datos", "No hay datos de 'Ingresos' para Entradas.")
-            return
-
-        import numpy as np
-        x = np.arange(len(fechas))
-        plt.figure(figsize=(8, 5))
-        plt.bar(x, entradas_vals, color="green")
-        plt.xticks(x, fechas, rotation=45)
-        plt.title("Ingresos por Entradas (Colección 'Ingresos')")
-        plt.xlabel("Fechas / Partidos")
-        plt.ylabel("€ Ingresos Entradas")
-        plt.tight_layout()
-        plt.show()
-
-    # ========================
-    # GRÁFICO DE INGRESOS TOTALES (Bar + Entradas)
-    # ========================
-    def show_graph_ingresos(self):
-        """
-        Genera un gráfico apilado o comparativo con 'ingresos_bar' y 'ingresos_entradas'
-        para ver el total de ingresos por partido.
-        """
-        ingresos_ref = db.collection("Ingresos").stream()
-        fechas = []
-        bar_vals = []
-        entradas_vals = []
-        total_vals = []
-
-        for doc in ingresos_ref:
-            data = doc.to_dict()
-            fecha = data.get("fecha", doc.id)
-            bar = int(data.get("ingresos_bar", 0))
-            entradas = int(data.get("ingresos_entradas", 0))
-            total = bar + entradas
-            fechas.append(fecha)
-            bar_vals.append(bar)
-            entradas_vals.append(entradas)
-            total_vals.append(total)
-
-        if not fechas:
-            QMessageBox.warning(self, "Sin Datos", "No hay datos de 'Ingresos'.")
-            return
-
-        import numpy as np
-        x = np.arange(len(fechas))
-        width = 0.3
-        plt.figure(figsize=(8, 5))
-
-        # Gráfico de barras lado a lado
-        plt.bar(x - width, bar_vals, width=width, color="blue", label="Bar")
-        plt.bar(x, entradas_vals, width=width, color="orange", label="Entradas")
-        plt.bar(x + width, total_vals, width=width, color="green", alpha=0.7, label="Total")
-
-        plt.xticks(x, fechas, rotation=45)
-        plt.xlabel("Fechas / Partidos")
-        plt.ylabel("€ Ingresos")
-        plt.title("Ingresos Totales (Bar + Entradas)")
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
-
 # =========================
 # MAIN (PRUEBA)
 # =========================
