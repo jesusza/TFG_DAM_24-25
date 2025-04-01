@@ -1,3 +1,24 @@
 <resources>
-    <string name="app_name">AplicacionGestionEquipos</string>
+    <!-- General -->
+    <string name="app_name">Gestión Club</string>
+
+    <!-- Login -->
+    <string name="login_email_hint">Email</string>
+    <string name="login_password_hint">Contraseña</string>
+    <string name="login_button">Iniciar sesión</string>
+    <string name="login_logo_description">Logo del club</string>
+    <string name="login_fill_fields">Completa todos los campos</string>
+    <string name="login_user_no_role">Usuario sin rol definido</string>
+    <string name="login_role_error">Rol no reconocido</string>
+    <string name="login_error_prefix">Error: </string>
+
+    <!-- Pantalla árbitro -->
+    <string name="arbitro_main_title">Panel del Árbitro</string>
+    <string name="ver_partidos">Ver partidos</string>
+    <string name="crear_partido">Crear nuevo partido</string>
+    <string name="gestionar_tarjetas">Gestionar tarjetas</string>
+    <string name="ver_jugadores">Ver jugadores</string>
+    <string name="agregar_jugador">Agregar jugador</string>
+    <string name="titulo_lista_partidos">Lista de Partidos</string>
+
 </resources>
