@@ -5,7 +5,7 @@ from main_menu import MainMenu
 class MainWindow(QMainWindow):
     def __init__(self, team, name, role, email):
         super().__init__()
-        self.setWindowTitle("CRM - Principal")
+        self.setWindowTitle("Principal")
         self.setGeometry(100, 100, 1200, 800)
 
         # Stack de widgets

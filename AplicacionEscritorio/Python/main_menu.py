@@ -10,14 +10,13 @@ from contratos import ContratosWidget
 from ingresos_entradas import IngresosWidget
 from jugadores_Widget import JugadoresWidget
 from inventario_widget import InventarioWidget
-from entrenamientos_widget import EntrenamientosWidget
 from resultadosWidget import ResultadosWidget
 from clasificacion_widget import ClasificacionWidget  # <-- AÑADIDO
 
 class MainMenu(QWidget):
     def __init__(self, team, name, role, email, logout_callback):
         super().__init__()
-        self.setWindowTitle("CRM - Menú Principal")
+        self.setWindowTitle("Menú Principal")
         self.setGeometry(100, 100, 1200, 800)
 
         self.team = team
@@ -47,8 +46,7 @@ class MainMenu(QWidget):
             "Ingreso Entradas": (self.show_ingresos_entradas, ["directivo"]),
             "Jugadores": (self.show_jugadores, ["directivo", "entrenador", "jugador"]),
             "Inventario": (self.show_inventario, ["directivo"]),
-            "Clasificación": (self.show_clasificacion, ["directivo", "entrenador", "jugador"]),  # <-- MODIFICADO
-            "Entrenamientos": (self.show_entrenamientos, ["directivo", "entrenador", "jugador"]),
+            "Clasificación": (self.show_clasificacion, ["directivo", "entrenador", "jugador"]), 
             "Resultados del Año": (self.show_resultados, ["directivo"])
         }
 
@@ -74,7 +72,6 @@ class MainMenu(QWidget):
         self.ingresos_widget = IngresosWidget()
         self.jugadores_widget = JugadoresWidget(read_only=(self.role == "jugador"))
         self.inventario_widget = InventarioWidget()
-        self.entrenamientos_widget = EntrenamientosWidget(read_only=(self.role == "jugador"))
         self.resultados_widget = ResultadosWidget()
         self.clasificacion_widget = ClasificacionWidget()  # <-- AÑADIDO
 
@@ -83,7 +80,6 @@ class MainMenu(QWidget):
         self.stack.addWidget(self.ingresos_widget)
         self.stack.addWidget(self.jugadores_widget)
         self.stack.addWidget(self.inventario_widget)
-        self.stack.addWidget(self.entrenamientos_widget)
         self.stack.addWidget(self.resultados_widget)
         self.stack.addWidget(self.clasificacion_widget)  # <-- AÑADIDO
 
@@ -114,9 +110,6 @@ class MainMenu(QWidget):
 
     def show_inventario(self):
         self.stack.setCurrentWidget(self.inventario_widget)
-
-    def show_entrenamientos(self):
-        self.stack.setCurrentWidget(self.entrenamientos_widget)
 
     def show_resultados(self):
         self.stack.setCurrentWidget(self.resultados_widget)
