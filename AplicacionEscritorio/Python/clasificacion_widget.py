@@ -1,144 +1,200 @@
-import sys
+import sys, unicodedata
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel,
-    QComboBox, QTableWidget, QTableWidgetItem, QPushButton, QMessageBox
+    QComboBox, QTableWidget, QTableWidgetItem,
+    QPushButton, QMessageBox
 )
 from PyQt5.QtCore import Qt
-import firebase_admin
-from firebase_admin import credentials, firestore
 import matplotlib.pyplot as plt
 
-# Inicialización de Firebase
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# ------------------------------------------------------------------
+#  Firebase
+# ------------------------------------------------------------------
 if not firebase_admin._apps:
     cred = credentials.Certificate(
-        "C:/Users/ZANCADA/Desktop/TFG/AplicacionEscritorio/Python/gestion-club-futbol-firebase-adminsdk-fbsvc-c4fe34cec8.json"
+        r"C:/Users/ZANCADA/Desktop/TFG/AplicacionEscritorio/Python/"
+        r"gestion-club-futbol-firebase-adminsdk-fbsvc-c4fe34cec8.json"
     )
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
+# ------------------------------------------------------------------
+#  Categorías y utilidades
+# ------------------------------------------------------------------
+CATEGORIAS_BASE = {
+    "aficionado":  "Aficionado",
+    "juvenil":     "Juvenil",
+    "cadete":      "Cadete",
+    "infantil":    "Infantil",
+    "alevin":      "Alevin",
+    "benjamin":    "Benjamin",
+    "prebenjamin": "Prebenjamin",
+}
+STRIP_CHARS = str.maketrans("", "", " -_.")
+
+def sin_acentos(txt: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", txt)
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().translate(STRIP_CHARS)
+
+def detectar_categoria(nombre_equipo: str) -> str | None:
+    norm = sin_acentos(nombre_equipo)
+    for clave, categoria in CATEGORIAS_BASE.items():
+        if clave in norm:
+            return categoria
+    return None
+
+# ------------------------------------------------------------------
+#  Widget de Clasificación
+# ------------------------------------------------------------------
 class ClasificacionWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Clasificación por Categorías")
-        self.setGeometry(300, 200, 900, 500)
+        self.setGeometry(300, 200, 900, 520)
 
-        self.layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
 
-        # Título
-        self.title_label = QLabel("Clasificación del Club")
-        self.title_label.setAlignment(Qt.AlignCenter)
-        self.title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-        self.layout.addWidget(self.title_label)
+        # título
+        titulo = QLabel("Clasificación del Club")
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("font-size:18px;font-weight:bold;")
+        layout.addWidget(titulo)
 
-        # Filtro por categoría
-        self.categoria_combo = QComboBox()
-        self.categoria_combo.addItems(["Todas", "Juvenil", "Cadete", "Infantil", "Alevín", "Benjamín", "Prebenjamín"])
-        self.categoria_combo.currentIndexChanged.connect(self.load_table)
-        self.layout.addWidget(self.categoria_combo)
+        # filtro
+        self.cbo = QComboBox()
+        self.cbo.addItem("Todas")
+        self.cbo.addItems(CATEGORIAS_BASE.values())
+        self.cbo.currentIndexChanged.connect(self.load_table)
+        layout.addWidget(self.cbo)
 
-        # Botón para calcular clasificación
-        self.calcular_btn = QPushButton("Calcular Clasificación")
-        self.calcular_btn.setStyleSheet("background-color: #0074cc; color: white; padding: 10px;")
-        self.calcular_btn.clicked.connect(self.calcular_clasificacion)
-        self.layout.addWidget(self.calcular_btn)
+        # botones
+        btn_calc = QPushButton("Calcular Clasificación")
+        btn_calc.setStyleSheet("background:#0074cc;color:white;padding:8px;")
+        btn_calc.clicked.connect(self.calcular_clasificacion)
+        layout.addWidget(btn_calc)
 
-        # Botón para mostrar gráfico general
-        self.graph_btn = QPushButton("Ver Gráfico de Clasificación")
-        self.graph_btn.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px;")
-        self.graph_btn.clicked.connect(self.show_graph)
-        self.layout.addWidget(self.graph_btn)
+        btn_graph = QPushButton("Ver Gráfico de Clasificación")
+        btn_graph.setStyleSheet("background:#4CAF50;color:white;padding:8px;")
+        btn_graph.clicked.connect(self.show_graph)
+        layout.addWidget(btn_graph)
 
-        # Tabla
+        # tabla
         self.table = QTableWidget()
         self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["Categoría", "Puntos", "Jugados", "Ganados", "Empatados", "Perdidos"])
-        self.layout.addWidget(self.table)
+        self.table.setHorizontalHeaderLabels(
+            ["Categoría", "Puntos", "Jugados", "Ganados", "Empatados", "Perdidos"]
+        )
+        layout.addWidget(self.table)
 
-        self.setLayout(self.layout)
         self.load_table()
 
+    # --------------------------------------------------------------
+    #  Cálculo y guardado
+    # --------------------------------------------------------------
     def calcular_clasificacion(self):
-        categorias = ["Juvenil", "Cadete", "Infantil", "Alevín", "Benjamín", "Prebenjamín"]
-        clasificacion = {cat: {"puntos": 0, "jugados": 0, "ganados": 0, "empatados": 0, "perdidos": 0} for cat in categorias}
+        stats = {v: {"puntos": 0, "jugados": 0,
+                     "ganados": 0, "empatados": 0, "perdidos": 0}
+                 for v in CATEGORIAS_BASE.values()}
 
-        partidos_ref = db.collection("Calendario").stream()
+        partidos = (db.collection("Calendario")
+                      .where("estado", "==", "Finalizado")
+                      .stream())
 
-        for doc in partidos_ref:
-            data = doc.to_dict()
-            categoria = data.get("equipo_local", "")
-            estado = data.get("estado", "")
-            if categoria not in categorias or estado.lower() != "finalizado":
-                continue
+        for doc in partidos:
+            p = doc.to_dict()
 
-            goles_local = int(data.get("goles_local", 0))
-            goles_visitante = int(data.get("goles_visitante", 0))
+            # datos del partido
+            loc_name = p.get("equipo_local", "")
+            vis_name = p.get("equipo_visitante", "")
+            gl = int(p.get("goles_local") or 0)
+            gv = int(p.get("goles_visitante") or 0)
 
-            clasificacion[categoria]["jugados"] += 1
+            cat_loc = detectar_categoria(loc_name)
+            cat_vis = detectar_categoria(vis_name)
 
-            if goles_local > goles_visitante:
-                clasificacion[categoria]["puntos"] += 3
-                clasificacion[categoria]["ganados"] += 1
-            elif goles_local == goles_visitante:
-                clasificacion[categoria]["puntos"] += 1
-                clasificacion[categoria]["empatados"] += 1
-            else:
-                clasificacion[categoria]["perdidos"] += 1
+            # ------- local -------
+            if cat_loc:
+                s = stats[cat_loc]
+                s["jugados"] += 1
+                if gl > gv:
+                    s["ganados"] += 1;  s["puntos"] += 3
+                elif gl == gv:
+                    s["empatados"] += 1;  s["puntos"] += 1
+                else:
+                    s["perdidos"] += 1
 
-        # Guardar en colección Clasificacion
-        for cat, stats in clasificacion.items():
-            db.collection("Clasificacion").document(cat).set(stats)
+            # ------- visitante -------
+            if cat_vis:
+                s = stats[cat_vis]
+                s["jugados"] += 1
+                if gv > gl:
+                    s["ganados"] += 1;  s["puntos"] += 3
+                elif gv == gl:
+                    s["empatados"] += 1;  s["puntos"] += 1
+                else:
+                    s["perdidos"] += 1
 
-        QMessageBox.information(self, "Éxito", "Clasificación actualizada correctamente.")
+        # guardar en la colección Clasificacion
+        for cat, st in stats.items():
+            db.collection("Clasificacion").document(cat).set(st)
+
+        QMessageBox.information(self, "Éxito",
+                                "Clasificación actualizada correctamente.")
         self.load_table()
 
+    # --------------------------------------------------------------
+    #  Tabla
+    # --------------------------------------------------------------
     def load_table(self):
         self.table.setRowCount(0)
-        selected_cat = self.categoria_combo.currentText()
+        filtro = self.cbo.currentText()
 
-        docs = db.collection("Clasificacion").stream()
-        row = 0
-        for doc in docs:
+        for doc in db.collection("Clasificacion").stream():
             cat = doc.id
-            data = doc.to_dict()
-
-            if selected_cat != "Todas" and cat != selected_cat:
+            if filtro != "Todas" and cat != filtro:
                 continue
+            st = doc.to_dict()
+            r = self.table.rowCount()
+            self.table.insertRow(r)
+            self.table.setItem(r, 0, QTableWidgetItem(cat))
+            self.table.setItem(r, 1, QTableWidgetItem(str(st.get("puntos", 0))))
+            self.table.setItem(r, 2, QTableWidgetItem(str(st.get("jugados", 0))))
+            self.table.setItem(r, 3, QTableWidgetItem(str(st.get("ganados", 0))))
+            self.table.setItem(r, 4, QTableWidgetItem(str(st.get("empatados", 0))))
+            self.table.setItem(r, 5, QTableWidgetItem(str(st.get("perdidos", 0))))
 
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(cat))
-            self.table.setItem(row, 1, QTableWidgetItem(str(data.get("puntos", 0))))
-            self.table.setItem(row, 2, QTableWidgetItem(str(data.get("jugados", 0))))
-            self.table.setItem(row, 3, QTableWidgetItem(str(data.get("ganados", 0))))
-            self.table.setItem(row, 4, QTableWidgetItem(str(data.get("empatados", 0))))
-            self.table.setItem(row, 5, QTableWidgetItem(str(data.get("perdidos", 0))))
-            row += 1
-
+    # --------------------------------------------------------------
+    #  Gráfico de puntos
+    # --------------------------------------------------------------
     def show_graph(self):
-        docs = db.collection("Clasificacion").stream()
-        categorias = []
-        puntos = []
-
-        for doc in docs:
-            categorias.append(doc.id)
+        cats, puntos = [], []
+        for doc in db.collection("Clasificacion").stream():
+            cats.append(doc.id)
             puntos.append(doc.to_dict().get("puntos", 0))
 
-        if not categorias:
+        if not cats:
             QMessageBox.warning(self, "Sin datos", "No hay datos para mostrar.")
             return
 
         import numpy as np
-        x = np.arange(len(categorias))
+        x = np.arange(len(cats))
         plt.figure(figsize=(8, 5))
-        plt.bar(x, puntos, color='blue')
-        plt.xticks(x, categorias)
+        plt.bar(x, puntos, color="#0056b3")
+        plt.xticks(x, cats)
         plt.ylabel("Puntos")
         plt.title("Clasificación General por Categoría")
         plt.tight_layout()
         plt.show()
 
+# ------------------------------------------------------------------
+#  Arranque independiente de prueba
+# ------------------------------------------------------------------
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ClasificacionWidget()
-    window.show()
+    w = ClasificacionWidget()
+    w.show()
     sys.exit(app.exec_())
